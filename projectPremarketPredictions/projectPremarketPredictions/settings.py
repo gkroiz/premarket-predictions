@@ -75,8 +75,12 @@ WSGI_APPLICATION = 'projectPremarketPredictions.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'premarket_predictions_db',
+        'USER': 'root',
+        'PASSWORD': 'rootpassword',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
