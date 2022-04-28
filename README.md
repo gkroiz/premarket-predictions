@@ -8,3 +8,4 @@ https://stackoverflow.com/questions/63392426/how-to-use-tailwindcss-with-django
 - numpy=1.21.5
 - pandas=1.3.5
 - django=3.2
+- requests

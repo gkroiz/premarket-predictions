@@ -4,9 +4,7 @@ from datetime import datetime
 import pandas as pd
 import json
 import numpy as np
-import pymysql
 
-# from sqlalchemy import create_engine
 
 
 # import the module
