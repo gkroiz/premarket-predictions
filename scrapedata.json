@@ -1,0 +1,5 @@
+{
+    "start_date": "2022-04-26",
+    "end_date": "today",
+    "tickers" : ["AAPL", "MSFT", "AMZN", "TLSA", "GOOGL", "GOOG", "NVDA", "BRK-B", "FB",  "UNH"]
+}
