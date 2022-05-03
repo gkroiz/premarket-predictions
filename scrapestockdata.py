@@ -54,5 +54,7 @@ for stock in stocksToTrack:
     tickers = [stock] * len(history)
     tickers = np.array(tickers)
     dayStartPrice = history['Open'][0]
+    print(history.index[0])
+    print(type(history.index[0]))
     transformed_data = pd.DataFrame(np.transpose(np.array([tickers, history.index, history['Open'], history['Close'], history['High'], history['Low'], history['Volume'], (history['Close'] - dayStartPrice) / dayStartPrice])),columns=['ticker','datetime','open_price','close_price','high_price', 'low_price', 'volume','percent_change'])
-    transformed_data.to_sql('minute_stock_data', con = engine, if_exists = 'append', index=False, chunksize = 1000)
+    # transformed_data.to_sql('minute_stock_data', con = engine, if_exists = 'append', index=False, chunksize = 1000)
