@@ -76,3 +76,4 @@ for page in range(1,num_pages+1):
 data = pd.DataFrame(data, columns=['title', 'datetime', 'news_url', 'tickers', 'image_url', 'text', 'source_name', 'sentiment', 'type'])    
 # print(data)
 data.to_sql('news', con = engine, if_exists = 'append', index = False, chunksize = 1000)
+exit()
