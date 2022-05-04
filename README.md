@@ -10,3 +10,4 @@ https://stackoverflow.com/questions/63392426/how-to-use-tailwindcss-with-django
 - django=3.2
 - requests
 - beautifulsoup4
+- requests_html
