@@ -77,5 +77,5 @@ for ticker in jsondata['tickers']:
 
 data = pd.DataFrame(data, columns=['ticker', 'date', 'exp_eps', 'actual_eps'])    
 # print(data)
-data.to_sql('eps', con = engine, if_exists = 'append', index = False, chunksize = 1000)
+data.to_sql('eps', con = engine, if_exists = 'append', index = False)
 

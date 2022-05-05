@@ -54,7 +54,7 @@ for ticker in jsondata['tickers']:
 
 
 
-    print(f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={apiKey}")
+    # print(f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={apiKey}")
     response = requests.get(f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={apiKey}")
     jsonscrape = response.json()
 
@@ -81,5 +81,5 @@ for ticker in jsondata['tickers']:
 
 data = pd.DataFrame(data, columns=['ticker', 'name', 'sector', 'industry', 'age', 'description', 'totalemployees', 'website'])    
 # print(data)
-data.to_sql('stock', con = engine, if_exists = 'append', index = False, chunksize = 1000)
+data.to_sql('stock', con = engine, if_exists = 'append', index = False)
 

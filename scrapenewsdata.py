@@ -50,21 +50,21 @@ end_date = datetime.strptime(end_date, "%Y-%m-%d").strftime("%m%d%Y")
 
 
 import ast
-f = open('test.txt', 'r').read()
+# f = open('test.txt', 'r').read()
 
-jsonscrape = ast.literal_eval(f)
+# jsonscrape = ast.literal_eval(f)
 
 api_token = 'o3b5ritrjxmkitqln5lbihcyufm11vkfnxwonb2r'
 # print(f"https://stocknewsapi.com/api/v1?tickers={stocksToTrack}&date={start_date}-{end_date}&items=50&page=1&token={api_token}")
-# response = requests.get(f"https://stocknewsapi.com/api/v1?tickers={stocksToTrack}&date={start_date}-{end_date}&items=50&page=1&token={api_token}")
-# jsonscrape = response.json()
+response = requests.get(f"https://stocknewsapi.com/api/v1?tickers={stocksToTrack}&date={start_date}-{end_date}&items=50&page=1&token={api_token}")
+jsonscrape = response.json()
 
 num_pages = jsonscrape['total_pages']
 
 data = []
 for page in range(1,num_pages+1):
     if page != 1:
-        break
+        # break
         response = requests.get(f"https://stocknewsapi.com/api/v1?tickers={stocksToTrack}&date={start_date}-{end_date}&items=50&page={page}&token={api_token}")
         jsonscrape = response.json()
 
@@ -75,5 +75,5 @@ for page in range(1,num_pages+1):
 
 data = pd.DataFrame(data, columns=['title', 'datetime', 'news_url', 'tickers', 'image_url', 'text', 'source_name', 'sentiment', 'type'])    
 # print(data)
-data.to_sql('news', con = engine, if_exists = 'append', index = False, chunksize = 1000)
+data.to_sql('news', con = engine, if_exists = 'append', index = False)
 exit()
