@@ -79,7 +79,7 @@ for ticker in jsondata['tickers']:
     industry = parseinfo[1].find_all("span", class_="Fw(600)")[1].text
     data.append([ticker, name, sector, industry, age, description, totalemployees, website])
 
-data = pd.DataFrame(data, columns=['ticker', 'name', 'sector', 'industry', 'age', 'description', 'totalemployees', 'website'])    
+data = pd.DataFrame(data, columns=['ticker', 'name', 'sector', 'industry', 'age', 'description', 'total_employees', 'website'])    
 # print(data)
 data.to_sql('stock', con = engine, if_exists = 'append', index = False)
 

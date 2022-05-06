@@ -12,8 +12,9 @@
 
   <nav class="navbar navbar-light bg-light">
     <div class="container-fluid">
-      <form class="d-flex">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+      <h1> Premarket Predictions </h1>
+      <form method="post" class="d-flex">{% csrf_token %}
+        <input class="form-control me-2" type="search" name="search" placeholder="Search for symbols" aria-label="Search">
         <button class="btn btn-outline-success" type="submit">Search</button>
       </form>
     </div>
@@ -22,10 +23,65 @@
   <div class="container-fluid">
   <div class="card">
     <div class="card-body">
-      This is some text within a card body.
+      <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
+
+      {% comment %} <form action="{% url 'search_results' %}" method="get">
+        <input name="q" type="text" placeholder="Search...">
+      </form> {% endcomment %}
     </div>
   </div>
   </div>
+  <nav>
+    <a id="msft" target="_blank" href="https://microsoft.com">Microsoft</a> <br />
+    <a id="goog" target="_blank" href="https://google.com">Google</a> <br />
+    <a id="aapl" target="_blank" href="https://apple.com">Apple</a> 
+   <nav>
+   
+   <br />
+   <button onclick="toggle(this)">Hide Apple</button>
+   
+   <script>
+     let toggle = button => {
+       let element = document.getElementById("aapl");
+       let hidden = element.getAttribute("hidden");
+       
+       if (hidden) {
+          element.removeAttribute("hidden");
+          button.innerText = "Hide Apple";
+       } else {
+          element.setAttribute("hidden", "hidden");
+          button.innerText = "Show Apple";
+       }
+     }
+   </script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+<body>
+{% comment %} <canvas id="myChart" style="width:100%;max-width:600px"></canvas> {% endcomment %}
 
+<script>
+var xValues = [50,60,70,80,90,100,110,120,130,140,150];
+var yValues = [7,8,8,9,9,9,10,11,14,14,15];
 
+new Chart("myChart", {
+  type: "line",
+  data: {
+    labels: xValues,
+    datasets: [{
+      fill: false,
+      lineTension: 0,
+      backgroundColor: "rgba(0,0,255,1.0)",
+      borderColor: "rgba(0,0,255,0.1)",
+      data: yValues
+    }]
+  },
+  options: {
+    legend: {display: false},
+    scales: {
+      yAxes: [{ticks: {min: 6, max:16}}],
+    }
+  }
+});
+</script>
+
+</body>
 </html>

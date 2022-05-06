@@ -155,6 +155,6 @@ for stock in stocksToTrack:
     transformed_data = pd.DataFrame(daily_trend_data,columns=['ticker','date','pre_b','pre_m','pre_MSE', 'pre_start', 'pre_end'])
     # print(transformed_data)
 
-    transformed_data.to_sql('daily_data_trend', con = engine, if_exists = 'append', index=False)
+    transformed_data.to_sql('daily_data_trend', con = engine, if_exists = 'append', index = False)
     # exit()
     
