@@ -54,12 +54,13 @@ if jsondata['end_date'] == 'today':
 else:
     end_date = jsondata['end_date']
 stocksToTrack = jsondata['tickers']
+addDates = jsondata['add_dates']
 
 start_date = pd.to_datetime(start_date)
 end_date = pd.to_datetime(end_date)
 for stock in stocksToTrack:
     date = pd.to_datetime(start_date)
-    daily_trend_data = []
+    # daily_trend_data = []
     while date <= end_date:
         monthStr = str(date.month)
         if date.month < 10:
@@ -88,17 +89,18 @@ for stock in stocksToTrack:
                 v = minData['v']
                 
                 time = int(minData['t']) / 1000
-                allDayData.append([stock, time, o, c, h, l, v, (c-startPrice)/startPrice])
+                allDayData.append([stock, date.date(), time, o, c, h, l, v, (c-startPrice)/startPrice])
             
-            dataforsql = pd.DataFrame(allDayData, columns=['ticker', 'datetime', 'open_price', 'close_price', 'high_price', 'low_price', 'volume', 'percent_change'])
-            dataforsql['datetime'] = pd.to_datetime(dataforsql['datetime'], unit='s', utc=True).dt.tz_convert('America/New_York')
+            dataforsql = pd.DataFrame(allDayData, columns=['ticker', 'date_id', 'time', 'open_price', 'close_price', 'high_price', 'low_price', 'volume', 'percent_change'])
+            dataforsql['time'] = pd.to_datetime(dataforsql['time'], unit='s', utc=True).dt.tz_convert('America/New_York')
+            # dataforsql['time'] = dataforsql['time'].time()
             # print(dataforsql)
             # exit()
-            dataforsql.to_sql('minute_stock_data', con = engine, if_exists = 'append', index=False)
+            # dataforsql.to_sql('minute_stock_data', con = engine, if_exists = 'append', index=False)
 
 
-            preMarket = pd.to_datetime(dataforsql['datetime'][0]).replace(hour=4, minute=00)
-            startMarket = pd.to_datetime(dataforsql['datetime'][0]).replace(hour=9, minute=30)
+            preMarket = pd.to_datetime(dataforsql['time'][0]).replace(hour=4, minute=00)
+            startMarket = pd.to_datetime(dataforsql['time'][0]).replace(hour=9, minute=30)
             # endMarket = pd.to_datetime(dataforsql['datetime'][0]).replace(hour=16, minute=00)
 
 
@@ -117,7 +119,7 @@ for stock in stocksToTrack:
             l = 0
                 # else:
                     # preMarket = preMarket + datetime.timedelta(minutes=1)
-            r = (dataforsql.loc[dataforsql['datetime'] == startMarket]).index.values[0]
+            r = (dataforsql.loc[dataforsql['time'] == startMarket]).index.values[0]
             # print(l)
             # print(r)
             pre_market_data = dataforsql[l:r]
@@ -125,7 +127,7 @@ for stock in stocksToTrack:
             # exit()
             # print(pre_market_data)
             # exit()
-            pre_market_delta = (pre_market_data['datetime'] - pre_market_data['datetime'].min())  / np.timedelta64(1,'D')
+            pre_market_delta = (pre_market_data['time'] - pre_market_data['time'].min())  / np.timedelta64(1,'D')
             # print(pre_market_delta)
             pre_market_delta = np.array(pre_market_delta).reshape(-1,1)
             # print(pre_market_delta.shape)
@@ -134,12 +136,12 @@ for stock in stocksToTrack:
             regr.fit(pre_market_delta, np.array(pre_market_data['open_price']).reshape(-1,1))
             pre_y = regr.predict(pre_market_delta)
             pre_MSE = mean_squared_error(pre_y, pre_market_data['open_price'])
+            # print(pre_MSE)
             pre_m = regr.intercept_
             pre_b = regr.coef_
             pre_start = pre_market_data['open_price'][0]
             pre_end = pre_market_data['close_price'][len(pre_market_data)-1]
-            
-            daily_trend_data.append([stock, date.date(), pre_b[0][0], pre_m[0], pre_MSE, pre_start, pre_end])
+            daily_trend_data = [[stock, date.date(), pre_b[0][0], pre_m[0], pre_MSE, pre_start, pre_end]]
             # print(daily_trend_data)
             # import matplotlib.pyplot as plt
             # plt.scatter(pre_market_delta,  np.array(pre_market_data['open_price']).reshape(-1,1), color="black")
@@ -148,13 +150,24 @@ for stock in stocksToTrack:
             # plt.savefig('tmp.png')
             # exit()
         #end of loop
-        date = date + datetime.timedelta(days=1)
         # break
     # print(daily_trend_data)
-
-    transformed_data = pd.DataFrame(daily_trend_data,columns=['ticker','date','pre_b','pre_m','pre_MSE', 'pre_start', 'pre_end'])
+        # exit()
+            transformed_data = pd.DataFrame(daily_trend_data,columns=['ticker_id','date_id','pre_b','pre_m','pre_MSE', 'pre_start', 'pre_end'])
     # print(transformed_data)
+            # print(transformed_data)
+            if addDates and stock == stocksToTrack[0]:
+                dates_data = pd.DataFrame([date.date()], columns=['date'])
+                dates_data.to_sql('dates', con = engine, if_exists = 'append', index = False)
 
-    transformed_data.to_sql('daily_data_trend', con = engine, if_exists = 'append', index = False)
+            transformed_data.to_sql('daily_data_trend', con = engine, if_exists = 'append', index = False)
+            dataforsql.to_sql('minute_stock_data', con = engine, if_exists = 'append', index=False)
+        # exit()
+
+
+        date = date + datetime.timedelta(days=1)
+
     # exit()
+
+
     

@@ -11,3 +11,12 @@ https://stackoverflow.com/questions/63392426/how-to-use-tailwindcss-with-django
 - requests
 - beautifulsoup4
 - requests_html
+
+
+## Reset mirgations
+1) python manage.py migrate --fake homepage zero
+2) find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+find . -path "*/migrations/*.pyc"  -delete
+3) python manage.py makemigrations
+4) python manage.py sqlmigrate homepage 0001
+5) python manage.py migrate

@@ -75,7 +75,7 @@ for ticker in jsondata['tickers']:
             print(announce_date, fisc_end_date, est_eps, act_eps)
             data.append([ticker, pd.to_datetime(fisc_end_date), est_eps, act_eps])
 
-data = pd.DataFrame(data, columns=['ticker', 'date', 'exp_eps', 'actual_eps'])    
+data = pd.DataFrame(data, columns=['ticker_id', 'date', 'exp_eps', 'actual_eps'])    
 # print(data)
 data.to_sql('eps', con = engine, if_exists = 'append', index = False)
 

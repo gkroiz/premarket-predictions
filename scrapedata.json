@@ -1,5 +1,6 @@
 {
-    "start_date": "2021-05-05",
+    "start_date": "2021-05-06",
     "end_date": "today",
-    "tickers" : ["AAPL"]
+    "tickers" : ["AAPL", "SBUX"],
+    "add_dates": true
 }
