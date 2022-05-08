@@ -28,10 +28,10 @@ class daily_data_trend(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
     ticker = models.ForeignKey(stock, on_delete=models.CASCADE, related_name='daily_to_stock', to_field='ticker')
 
-    # ticker = models.CharField(max_length=10, name='ticker')
+    # ticker_id = models.CharField(max_length=10)
+    # date_id = models.DateField()
     date = models.ForeignKey(dates, on_delete=models.CASCADE, related_name='daily_to_dates', to_field='date')
-    pre_b = models.FloatField()
-    pre_m = models.FloatField()
+    pre_percent_change = models.FloatField()
     pre_MSE = models.FloatField()
     pre_start = models.FloatField()
     pre_end = models.FloatField()
@@ -41,8 +41,9 @@ class daily_data_trend(models.Model):
 
 class minute_stock_data(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    ticker = models.CharField(max_length=10)
-    # datetime = models.DateTimeField(name='datetime')
+    # ticker_id = models.CharField(max_length=10)
+    ticker = models.ForeignKey(stock, on_delete=models.CASCADE, related_name='minute_to_stock', to_field='ticker')
+    # date_id = models.DateField()
     date = models.ForeignKey(dates, on_delete=models.CASCADE, related_name='minute_to_dates', to_field='date')
     time = models.TimeField()
     open_price = models.FloatField()
@@ -57,9 +58,10 @@ class minute_stock_data(models.Model):
 
 class eps(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    # ticker = models.CharField(max_length=10, name='ticker')
+    # ticker_id = models.CharField(max_length=10)
     ticker = models.ForeignKey(stock, on_delete=models.CASCADE, related_name='eps_to_stock', to_field='ticker')
-    date = models.DateField(name='date')
+    quarter_date = models.DateField()
+    announced_date = models.DateField()
     exp_eps = models.FloatField()
     actual_eps = models.FloatField()
     class Meta:
@@ -68,7 +70,9 @@ class eps(models.Model):
 class news(models.Model):
     article_id = models.AutoField(primary_key=True, unique=True)
     title = models.TextField()
-    datetime = models.DateTimeField()
+    date = models.ForeignKey(dates, on_delete=models.CASCADE, related_name='news_to_dates', to_field='date')
+    time = models.TimeField()
+    # datetime = models.DateTimeField()
     news_url = models.TextField()
     tickers = models.JSONField()
     image_url = models.TextField()

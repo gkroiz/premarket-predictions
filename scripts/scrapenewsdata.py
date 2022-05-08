@@ -71,9 +71,9 @@ for page in range(1,num_pages+1):
     for article in jsonscrape['data']:
         date = pd.to_datetime(article['date'].split(',')[1], format=' %d %b %Y %H:%M:%S %z')
         
-        data.append([article['title'], date, article['news_url'], json.dumps(article['tickers']), article['image_url'], article['text'], article['source_name'], article['sentiment'], article['type']])
+        data.append([article['title'], date.date(), date.time(), article['news_url'], json.dumps(article['tickers']), article['image_url'], article['text'], article['source_name'], article['sentiment'], article['type']])
 
-data = pd.DataFrame(data, columns=['title', 'datetime', 'news_url', 'tickers', 'image_url', 'text', 'source_name', 'sentiment', 'type'])    
+data = pd.DataFrame(data, columns=['title', 'date_id', 'time', 'news_url', 'tickers', 'image_url', 'text', 'source_name', 'sentiment', 'type'])    
 # print(data)
 data.to_sql('news', con = engine, if_exists = 'append', index = False)
 exit()
