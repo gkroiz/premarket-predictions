@@ -221,13 +221,13 @@ def index(request):
                     "text": "Previous Earnings", 
                     "display": True, 
                     "fontSize": 16,
-                    'fontColor': Color.Black
+                    'fontColor': Color.RGBA(102,102,102,1)
                     }
 
                 legend = {
                     'position': 'bottom', 
                     'labels': {
-                        'fontColor': Color.Black, 
+                        'fontColor': Color.RGBA(102,102,102,1),
                         'fullWidth': True
                         }
                     }
