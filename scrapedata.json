@@ -1,8 +1,8 @@
 {
     "start_date": "2021-05-06",
     "end_date": "2022-05-06",
-    "tickers" : ["AAPL"],
-    "add_dates": true,
+    "tickers" : ["TSLA", "FB"],
+    "add_dates": false,
     "stock_news_api_token": "o3b5ritrjxmkitqln5lbihcyufm11vkfnxwonb2r",
     "polygon_io_api_token": "2LAQUprTxW0lDVCXc05Ni8YFpJH2og3x",
     "hostname": "localhost",
