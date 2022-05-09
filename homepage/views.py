@@ -149,19 +149,25 @@ def index(request):
             #convert all_times[i] to a string format for html compatability
             all_times[i] = all_times[i].time().strftime('%H:%M')
 
-        #get all of the eps data for the searched stock
-        eps_data = eps.objects.raw("SELECT eps.id, eps.ticker_id, eps.announced_date, eps.exp_eps, eps.actual_eps FROM eps INNER JOIN stock ON (eps.ticker_id = stock.ticker) WHERE (eps.ticker_id = %s)",[searched_stock])
-        
+        #get all of the eps data for the searched stock and joined the percent change in premarket for that day announced
+        eps_data = eps.objects.raw("SELECT eps.id, eps.ticker_id, eps.announced_date, eps.exp_eps, eps.actual_eps, daily_data_trend.pre_percent_change \
+            FROM eps INNER JOIN daily_data_trend ON (eps.ticker_id = daily_data_trend.ticker_id AND eps.announced_date = daily_data_trend.date_id) \
+                WHERE (eps.ticker_id = %s)",[searched_stock])
+
         #containers for html
         eps_date_data = []
         eps_exp_data = []
         eps_actual_data = []
+        annnounced_dates_pre_percent_change = []
         
         #save information for the last 4 eps announcements
         for i in range(0,4):
             eps_date_data.append(str(eps_data[i].announced_date))
             eps_exp_data.append(eps_data[i].exp_eps)
             eps_actual_data.append(eps_data[i].actual_eps)
+            print(eps_data[i].pre_percent_change)
+            annnounced_dates_pre_percent_change.append(round(eps_data[i].pre_percent_change * 100,2))
+
 
 
         #pychart.js class for plotting eps information
@@ -172,15 +178,14 @@ def index(request):
                 class exp:
                     label = "Expected EPS"
                     data = eps_exp_data
-                    # backgroundColor = Color.Green
                     type = ChartType.Line
                     backgroundColor = Color.RGBA(0,0,0,0)
-                    borderColor = Color.Red
+                    borderColor = Color.Green
                     borderWidth = 2
                     pointRadius = 10
                     hoverRadius = 8
                     hoverBorderWidth = 2
-                    pointBackgroundColor = Color.Red
+                    pointBackgroundColor = Color.Green
                     lineBackgroundColor = Color.RGBA(0,0,0,0)
                     fill = False
 
@@ -189,15 +194,28 @@ def index(request):
                     data = eps_actual_data
                     type = ChartType.Line
                     backgroundColor = Color.RGBA(0,0,0,0)
-                    borderColor = Color.Purple
-                    pointBackgroundColor = Color.Purple
+                    borderColor = Color.Blue
+                    pointBackgroundColor = Color.Blue
                     borderWidth = 2
                     pointRadius = 10
                     hoverRadius = 8
                     hoverBorderWidth = 2
                     lineBackgroundColor = Color.RGBA(0,0,0,0)
                     fill = False
-
+                class pre_change:
+                    label = "Pre-market Change (%)"
+                    data = annnounced_dates_pre_percent_change
+                    # backgroundColor = Color.Green
+                    type = ChartType.Line
+                    backgroundColor = Color.RGBA(0,0,0,0)
+                    borderColor = Color.Black
+                    borderWidth = 2
+                    pointRadius = 6
+                    hoverRadius = 4
+                    hoverBorderWidth = 2
+                    pointBackgroundColor = Color.Black
+                    lineBackgroundColor = Color.RGBA(0,0,0,0)
+                    fill = False
             class options:
                 title = {
                     "text": "Previous Earnings", 
@@ -218,7 +236,9 @@ def index(request):
         EPSChartJSON = EPSChart.get()
 
         #search for all sources of media on both searched date and best fit date that have information on the searched stock
-        queryString = f"SELECT news.article_id, news.title, news.date_id, news.time, news.news_url, news.tickers, news.image_url, news.text, news.source_name, news.sentiment, news.type FROM news WHERE ((news.date_id = '{searched_date}' OR news.date_id = '{minDiff_day}') AND news.tickers like '%%{searched_stock}%%')"
+        queryString = f"SELECT news.article_id, news.title, news.date_id, news.time, news.news_url, news.tickers, news.image_url, \
+            news.text, news.source_name, news.sentiment, news.type FROM news WHERE \
+                ((news.date_id = '{searched_date}' OR news.date_id = '{minDiff_day}') AND news.tickers like '%%{searched_stock}%%')"
         news_articles = news.objects.raw(queryString)
 
         #containers for html
