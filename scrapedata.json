@@ -1,6 +1,13 @@
 {
     "start_date": "2021-05-06",
-    "end_date": "today",
-    "tickers" : ["AAPL", "SBUX"],
-    "add_dates": true
+    "end_date": "2022-05-06",
+    "tickers" : ["AAPL"],
+    "add_dates": true,
+    "stock_news_api_token": "o3b5ritrjxmkitqln5lbihcyufm11vkfnxwonb2r",
+    "polygon_io_api_token": "2LAQUprTxW0lDVCXc05Ni8YFpJH2og3x",
+    "hostname": "localhost",
+    "port": "3306",
+    "dbname": "premarket_predictions_db",
+    "user": "root",
+    "pwd": "rootpassword"
 }

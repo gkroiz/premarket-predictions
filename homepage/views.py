@@ -1,132 +1,102 @@
    
-from ctypes import pointer
-from turtle import back
+#file name: views.py
+#description: file that uses django interface to work with UI and update accordingly.
+
+#imports
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
-
-
-# Create your views here.
 from django.urls import reverse
 from matplotlib import ticker
+from matplotlib.pyplot import plot
 from pyparsing import Opt
-# from requests import options
-
 from .models import stock, eps, minute_stock_data, news, daily_data_trend
-
 from pychartjs import BaseChart, ChartType, Color
-
 import pandas as pd
 import datetime
 
 
 def index(request):
     if request.method == "POST":
-        # if 'search' in request.POST[0]:
-            # print('t')
-        # print(request.POST)
-        search = request.POST.get('search')
-        # start_date = request.POST.get('start_date')
-        # end_date = request.POST.get('end_date')
-        compare_date = request.POST.get('compare_date')
 
-        print(compare_date)
-
-
-        # print(start_date)
-        # print(type(start_date))
-        background_info = stock.objects.filter(ticker__exact=search)
-        # a = stock.objects.select_related('eps_to_stock').filter(eps_to_stock__ticker_id = search).values()
-        # print(a.query)
-        # print(a)
         
-        # daily_trend = daily_data_trend.objects.select_related('date', 'ticker').filter(date__exact=compare_date).filter(ticker__exact=search).values()
-        # print(daily_data_trend.objects.select_related('date', 'ticker').filter(date__exact=compare_date).filter(ticker__exact=search).query)
-        # print(search)
-        # print(type(search))
+        searched_stock = request.POST.get('search')
+        searched_date = request.POST.get('compare_date')
 
+
+
+        #get background information on the searched stock and the stock's movement from the date selected by the user
         search_results = daily_data_trend.objects.raw('SELECT daily_data_trend.id, daily_data_trend.ticker_id, \
             daily_data_trend.date_id, daily_data_trend.pre_percent_change, daily_data_trend.pre_MSE, \
                  daily_data_trend.pre_start, daily_data_trend.pre_end, stock.name, stock.sector, stock.industry, \
                      stock.age, stock.description, stock.total_employees, stock.website FROM daily_data_trend \
                          INNER JOIN dates ON (daily_data_trend.date_id = dates.date) INNER JOIN stock ON \
-                             (daily_data_trend.ticker_id = stock.ticker) WHERE (dates.date = %s AND stock.ticker = %s)', [compare_date, search])
-        # search_results = daily_data_trend.objects.raw('SELECT daily_data_trend FROM daily_data_trend INNER JOIN dates ON ' + 
-                                # '(daily_data_trend.date_id = dates.date) INNER JOIN stock ON (daily_data_trend.ticker_id = stock.ticker) ' +
-                                    # 'WHERE (date_id = %s AND daily_data_trend.ticker_id = %s) ', [compare_date,search])
-        # daily_trend = daily_data_trend.objects.raw("SELECT * FROM daily_data_trend INNER JOIN dates ON (daily_data_trend.date_id = dates.date);")
-        # daily_trend = daily_data_trend.objects.raw("SELECT * FROM daily_data_trend INNER JOIN dates ON (daily_data_trend.date_id = dates.date);")
-        print(search_results)
-        print('before this')
-        print(len(search_results))
-        for a in search_results:
-            print(a.ticker)
-            print(a.date)
-            print(a.description)
-        print('after this')
-        # daily_trend = daily_trend.values()
+                             (daily_data_trend.ticker_id = stock.ticker) WHERE (dates.date = %s AND stock.ticker = %s)', [searched_date, searched_stock])
 
+        #if the user did not pick a valid stock ticker or date, return them
+        if len(search_results) == 0:
+            return render(request, 'index.html')
 
+        #populate background_info for html
+        background_info = {}
+        for data in search_results:
+            background_info['ticker'] = data.ticker_id
+            background_info['sector'] = data.sector
+            background_info['indusctry'] = data.industry
+            background_info['age'] = data.age
+            background_info['description'] = data.description
+            background_info['total_employees'] = data.total_employees
+            background_info['website'] = data.website
         
+
+        #variables from the search result
+        #used to find day that is most similar        
         compared_daily_pre_percent_change = search_results[0].pre_percent_change
         compared_daily_MSE = search_results[0].pre_MSE
         compared_daily_date = search_results[0].date
 
+        #get all of the daily data for the searched stock
+        all_daily_data = daily_data_trend.objects.raw('SELECT * FROM daily_data_trend WHERE (daily_data_trend.ticker_id = %s)', [searched_stock])
 
 
-        all_daily_data = daily_data_trend.objects.filter(ticker__exact=search).values()
-
-        # minDiff_m = None
         minDiff_day = None
         minDiff_percent_change = None
-        # best_fit_daily_m = None
-        # best_fit_daily_b = None
-        # best_fit_daily_MSE = None
+
+        #find day with the minimum difference in percent change
         for day_data in all_daily_data:
-            # if day_data['date_id'] != compared_daily_date:
             if minDiff_day == None:
-                minDiff_day = day_data['date_id']
-                minDiff_percent_change = abs(compared_daily_pre_percent_change - day_data['pre_percent_change'])
-                # best_fit_daily_m = day_data['pre_m']
-                # best_fit_daily_b = day_data['pre_b']
-                # best_fit_daily_MSE = day_data['pre_MSE']
+                minDiff_day = day_data.date_id
+                minDiff_percent_change = abs(compared_daily_pre_percent_change - day_data.pre_percent_change)
             else:
-                if minDiff_percent_change > abs(compared_daily_pre_percent_change - day_data['pre_percent_change']):
-                    if (abs(compared_daily_pre_percent_change - day_data['pre_percent_change']) != 0):
+                if minDiff_percent_change > abs(compared_daily_pre_percent_change - day_data.pre_percent_change):
 
-                        minDiff_percent_change = abs(compared_daily_pre_percent_change - day_data['pre_percent_change'])
-                        minDiff_day = day_data['date_id']
-                    # best_fit_daily_m = day_data['pre_m']
-                    # best_fit_daily_b = day_data['pre_b']
-                    # best_fit_daily_MSE = day_data['pre_MSE']
+                    #make sure you don't select the same day
+                    if str(compared_daily_date) != str(day_data.date):
 
+                        minDiff_percent_change = abs(compared_daily_pre_percent_change - day_data.pre_percent_change)
+                        minDiff_day = day_data.date_id
 
 
-        # print(daily_trend.values())
-
-        # compare_minute_data = minute_stock_data.objects.filter(ticker__exact=search).filter(date_id__exact=compare_date).values()
-        compare_minute_data = minute_stock_data.objects.raw('SELECT minute_stock_data.id, minute_stock_data.ticker_id, minute_stock_data.date_id, \
+        #get the minute data for the searched stock at the searched date
+        searched_date_minute_data = minute_stock_data.objects.raw('SELECT minute_stock_data.id, minute_stock_data.ticker_id, minute_stock_data.date_id, \
             minute_stock_data.time, minute_stock_data.open_price, minute_stock_data.close_price, minute_stock_data.high_price, \
                 minute_stock_data.low_price, minute_stock_data.volume, minute_stock_data.percent_change, \
                       daily_data_trend.pre_percent_change, daily_data_trend.pre_MSE, daily_data_trend.pre_start, daily_data_trend.pre_end \
                          FROM minute_stock_data INNER JOIN daily_data_trend ON (minute_stock_data.date_id = daily_data_trend.date_id) \
-                             WHERE (daily_data_trend.date_id = %s)', [compare_date])
+                             WHERE (daily_data_trend.date_id = %s)', [searched_date])
 
-        # best_fit_minute_data = minute_stock_data.objects.filter(ticker__exact=search).filter(date_id__exact=minDiff_day).values()
-
+        #get the minute data for the date that best fits the searched date
         best_fit_minute_data = minute_stock_data.objects.raw('SELECT minute_stock_data.id, minute_stock_data.ticker_id, minute_stock_data.date_id, \
             minute_stock_data.time, minute_stock_data.open_price, minute_stock_data.close_price, minute_stock_data.high_price, \
                 minute_stock_data.low_price, minute_stock_data.volume, minute_stock_data.percent_change, \
                       daily_data_trend.pre_percent_change, daily_data_trend.pre_MSE, daily_data_trend.pre_start, daily_data_trend.pre_end \
                          FROM minute_stock_data INNER JOIN daily_data_trend ON (minute_stock_data.date_id = daily_data_trend.date_id AND minute_stock_data.ticker_id = daily_data_trend.ticker_id) \
-                             WHERE (daily_data_trend.date_id = %s AND minute_stock_data.ticker_id = %s)', [minDiff_day, search])
-        print('before')
-        print(len(best_fit_minute_data))
-        # compare_minute_data = minute_stock_data.objects.filter(ticker__exact=search).filter(date_id__exact=compare_date).values()[:]['open_price']
-        # print(compare_minute_data)
-        compare_open_prices = []
-
+                             WHERE (daily_data_trend.date_id = %s AND minute_stock_data.ticker_id = %s)', [minDiff_day, searched_stock])
+       
         time = datetime.datetime.now().replace(hour=4, minute=0, second=0, microsecond=0)
+
+        #make array of all times from premarket open to aftermarket close (4:00 am to 8:00 pm)
         all_times = []
+        #just times that consist of premarket (4:00 am to 9:30 am)
         pre_market_times = []
         while time != datetime.datetime.now().replace(hour=20, minute=0, second=0, microsecond=0):
             curr = time
@@ -134,151 +104,67 @@ def index(request):
             if time < datetime.datetime.now().replace(hour=9, minute=30, second=0, microsecond=0):
                 pre_market_times.append(curr.time().strftime('%I:%M'))
             time = time + datetime.timedelta(minutes=1)
-        # print(times)
         
 
-        # print(times)
-        compare_open_prices = []
+        #get all of the open prices for the searched day and the day that best fits for plotting
+        searched_date_open_prices = []
         best_fit_open_prices = []
         
+        #starting prices for the searched date and the day that best fits
+        searched_date_start = searched_date_minute_data[0].open_price
         best_fit_start = best_fit_minute_data[0].open_price
-        compare_start = compare_minute_data[0].open_price
 
-        best_fit_pre_precent_change = best_fit_minute_data[0].pre_percent_change
-        best_fit_MSE = best_fit_minute_data[0].pre_MSE
-        print('compare info')
-        print(compare_start)
-        print(compared_daily_pre_percent_change)
-        # print(compared_daily_m)
-        print(compared_daily_date)
-
-        print('bestfit info')
-        print(best_fit_start)
-        print(best_fit_pre_precent_change)
-        # print(best_fit_daily_m)
-        print(minDiff_day)
-        comp_idx = 0
-        best_fit_idx = 0
-        # lbf1 = []
-        # lbf2 = []
-
-        best_fit_minute_data = minute_stock_data.objects.raw('SELECT minute_stock_data.id, minute_stock_data.ticker_id, minute_stock_data.date_id, \
-            minute_stock_data.time, minute_stock_data.open_price, minute_stock_data.percent_change \
-                         FROM minute_stock_data INNER JOIN daily_data_trend ON (minute_stock_data.date_id = daily_data_trend.date_id AND minute_stock_data.ticker_id = daily_data_trend.ticker_id) \
-                             WHERE (daily_data_trend.date_id = %s AND minute_stock_data.ticker_id = %s)', [minDiff_day,search])
         
-        # for i in range(len(best_fit_minute_data)):
-            # print(best_fit_minute_data[i].ticker)
-        print(len(best_fit_minute_data))
-        print(type(best_fit_minute_data[best_fit_idx].time))
-        print(best_fit_minute_data[1].time)
+        best_fit_pre_percent_change = best_fit_minute_data[0].pre_percent_change
+        best_fit_MSE = best_fit_minute_data[0].pre_MSE
+
+        #index trackers for searched date and best fit date
+        #this is needed because there may not be data for every minute
+        searched_date_idx = 0
+        best_fit_idx = 0
+
+        #iterates through each minute from 4:00 am to 8:00 pm
         for i in range(len(all_times)):
-            # print(all_times[i].time())
-            if comp_idx < len(compare_minute_data):
-                if (all_times[i].time() == compare_minute_data[comp_idx].time):
-                    # compare_open_prices.append(compare_minute_data[comp_idx]['open_price'])
-                    compare_open_prices.append((compare_minute_data[comp_idx].open_price-compare_start)/compare_start)
-                    comp_idx += 1
+            
+            #go through and add either the open price if the data exists or null if it does not 
+            if searched_date_idx < len(searched_date_minute_data):
+                if (all_times[i].time() == searched_date_minute_data[searched_date_idx].time):
+                    searched_date_open_prices.append((searched_date_minute_data[searched_date_idx].open_price-searched_date_start)/searched_date_start * 100)
+                    searched_date_idx += 1
                 else:
-                    compare_open_prices.append(None)
+                    searched_date_open_prices.append('null')
             else:
-                compare_open_prices.append(None)
-            # print(all_times[i].time(), best_fit_minute_data[best_fit_idx].time, best_fit_idx)
+                searched_date_open_prices.append('null')
+            
+            #go through and add either the open price if the data exists or null if it does not 
             if best_fit_idx < len(best_fit_minute_data):
                 if (all_times[i].time() == best_fit_minute_data[best_fit_idx].time):
-                    # best_fit_open_prices.append(best_fit_minute_data[best_fit_idx]['open_price'])
-                    best_fit_open_prices.append((best_fit_minute_data[best_fit_idx].open_price-best_fit_start)/best_fit_start)
+                    best_fit_open_prices.append((best_fit_minute_data[best_fit_idx].open_price-best_fit_start)/best_fit_start  * 100)
                     best_fit_idx += 1
                 else:
-                    best_fit_open_prices.append(None)
+                    best_fit_open_prices.append('null')
 
             else:
-                best_fit_open_prices.append(None)
-            # if all_times[i] < datetime.datetime.now().replace(hour=9, minute=30, second=0, microsecond=0):
-                # lbf1.append((compared_daily_m + (compared_daily_b/330)*0.22847222 * i))
-                # lbf1.append(((compared_daily_m/330)*0.22847222 * i)/compared_daily_b)
-                # lbf2.append(((best_fit_minute_data[best_fit_idx].pre_m/330)*0.22847222 * i)/best_fit_minute_data[best_fit_idx].pre_b)
-            all_times[i] = all_times[i].time().strftime('%I:%M')
+                best_fit_open_prices.append('null')
+            #convert all_times[i] to a string format for html compatability
+            all_times[i] = all_times[i].time().strftime('%H:%M')
 
-        print(best_fit_open_prices)
-
-            # lbf2.append(best_fit)
-        # print(lbf1)
-        # print(lbf2)
-        # compare_open_prices = (compare_open_prices - compare_open_prices[0]) / compare_open_prices[0]
-        # best_fit_open_prices = (best_fit_open_prices - best_fit_open_prices[0]) / best_fit_open_prices[0]
-
-        # print('after')
-        # a = eps.objects.filter(stocks_isnull=True).values()
-        # print(eps.objects.select_related('eps_to_stock').filter(ticker=search).values())
-        # for i in a.values():
-            # print('here')
-            # print(i)
-            # print('next')
-        if len(background_info) == 1:
-            print(background_info.values())
-        # print(len(stock.objects.filter(ticker__exact=search)))
-        # print(search)
-
-        # data = daily_data_trend.objects.filter(date__exact=compare_date)
-        # print(data)
-
-        class MainGraph(BaseChart):
-            class labels:
-                grouped = all_times
-            class data:
-                class compare_data:
-                    label = "Price for Evaluation Date"
-                    data = compare_open_prices
-                    # backgroundColor = Color.Green
-                    type = ChartType.Line
-                    backgroundColor = Color.RGBA(0,0,0,0)
-                    borderColor = Color.Blue
-                    borderWidth = 1.5
-                    radius = 0.5
-                class best_fit_data:
-                    label = "Price for Day that Best Fits"
-                    data = best_fit_open_prices
-                    # backgroundColor = Color.Green
-                    type = ChartType.Line
-                    backgroundColor = Color.RGBA(0,0,0,0)
-                    borderColor = Color.Green
-                    borderWidth = 1.5
-                    radius = 0.5
-            class options:
-                title = {
-                    "text": "Comparision of Stock Price", 
-                    "display": True, 
-                    "fontSize": 18,
-                    'fontColor': Color.Black
-                    }
-
-                legend = {
-                    'position': 'bottom', 
-                    'labels': {
-                        'fontColor': Color.Black, 
-                        'fullWidth': True
-                        }
-                    }
-
-                # scales = {
-                #     "yAxes": [{
-                #         'ticks': {
-                #             'beginAtZero': True, 
-                #             'padding': 15,
-                #             'max': 200
-                #             }
-                #         }]
-                #     }
-        eps_data = eps.objects.raw("SELECT eps.id, eps.ticker_id, eps.announced_date, eps.exp_eps, eps.actual_eps FROM eps INNER JOIN stock ON (eps.ticker_id = stock.ticker) WHERE (eps.ticker_id = %s)",[search])
+        #get all of the eps data for the searched stock
+        eps_data = eps.objects.raw("SELECT eps.id, eps.ticker_id, eps.announced_date, eps.exp_eps, eps.actual_eps FROM eps INNER JOIN stock ON (eps.ticker_id = stock.ticker) WHERE (eps.ticker_id = %s)",[searched_stock])
+        
+        #containers for html
         eps_date_data = []
         eps_exp_data = []
         eps_actual_data = []
-        print(len(eps_data))
+        
+        #save information for the last 4 eps announcements
         for i in range(0,4):
             eps_date_data.append(str(eps_data[i].announced_date))
             eps_exp_data.append(eps_data[i].exp_eps)
             eps_actual_data.append(eps_data[i].actual_eps)
+
+
+        #pychart.js class for plotting eps information
         class EPSGraph(BaseChart):
             class labels:
                 grouped = eps_date_data
@@ -296,14 +182,11 @@ def index(request):
                     hoverBorderWidth = 2
                     pointBackgroundColor = Color.Red
                     lineBackgroundColor = Color.RGBA(0,0,0,0)
-
                     fill = False
+
                 class actual:
                     label = "Actual EPS"
                     data = eps_actual_data
-                 
-                    # backgroundColor = Color.Green
-                    
                     type = ChartType.Line
                     backgroundColor = Color.RGBA(0,0,0,0)
                     borderColor = Color.Purple
@@ -313,8 +196,8 @@ def index(request):
                     hoverRadius = 8
                     hoverBorderWidth = 2
                     lineBackgroundColor = Color.RGBA(0,0,0,0)
-
                     fill = False
+
             class options:
                 title = {
                     "text": "Previous Earnings", 
@@ -330,30 +213,105 @@ def index(request):
                         'fullWidth': True
                         }
                     }
-        MainChart = MainGraph()
-        MainChartJSON = MainChart.get()
 
         EPSChart = EPSGraph()
         EPSChartJSON = EPSChart.get()
 
-        #code to get news
-        # news_articles = news.objects.raw('SELECT news.title, news.date_id, news_time, news.news_url, news.tickers, news.image_url, news.text, news.source_name, news.sentiment, news.type FROM news INNER JOIN dates ON (news.date_id = dates.date) WHERE (dates.date = %s AND stock.ticker = %s)', [compare_date, search])
+        #search for all sources of media on both searched date and best fit date that have information on the searched stock
+        queryString = f"SELECT news.article_id, news.title, news.date_id, news.time, news.news_url, news.tickers, news.image_url, news.text, news.source_name, news.sentiment, news.type FROM news WHERE ((news.date_id = '{searched_date}' OR news.date_id = '{minDiff_day}') AND news.tickers like '%%{searched_stock}%%')"
+        news_articles = news.objects.raw(queryString)
 
-        # for i in news_articles:
-            # print(i.tickers)
+        #containers for html
+        compare_article_positive = {}
+        compare_article_neutral = {}
+        compare_article_negative = {}
+        best_fit_article_positive = {}
+        best_fit_article_neutral = {}
+        best_fit_article_negative = {}
+
+        #read through each of the articles from the query and select the first for each sentiment and date to display in the UI
+        for article in news_articles:
+
+            #positive sentiment for the searched date
+            if article.sentiment == 'Positive' and len(compare_article_positive) == 0 and str(article.date_id) == str(searched_date):
+                compare_article_positive['image_url'] = article.image_url
+                compare_article_positive['news_url'] = article.news_url
+                compare_article_positive['title'] = article.title
+                compare_article_positive['source_name'] = article.source_name 
+                compare_article_positive['time'] = article.time
+                compare_article_positive['date'] = article.date_id
+                compare_article_positive['sentiment'] = article.sentiment
+
+            #neutral sentiment for the searched date
+            if article.sentiment == 'Neutral'  and len(compare_article_neutral) == 0 and str(article.date_id) == str(searched_date):
+                compare_article_neutral['image_url'] = article.image_url
+                compare_article_neutral['news_url'] = article.news_url
+                compare_article_neutral['title'] = article.title
+                compare_article_neutral['source_name'] = article.source_name
+                compare_article_neutral['time'] = article.time
+                compare_article_neutral['date'] = article.date_id
+                compare_article_neutral['sentiment'] = article.sentiment
+
+            #negative sentiment for the searched date
+            if article.sentiment == 'Negative'  and len(compare_article_negative) == 0 and str(article.date_id) == str(searched_date):
+                compare_article_negative['image_url'] = article.image_url
+                compare_article_negative['news_url'] = article.news_url
+                compare_article_negative['title'] = article.title
+                compare_article_negative['source_name'] = article.source_name
+                compare_article_negative['time'] = article.time
+                compare_article_negative['date'] = article.date_id
+                compare_article_negative['sentiment'] = article.sentiment
+
+            #positive sentiment for the best fit date
+            if article.sentiment == 'Positive' and len(best_fit_article_positive) == 0 and str(article.date_id) == str(minDiff_day):
+                best_fit_article_positive['image_url'] = article.image_url
+                best_fit_article_positive['news_url'] = article.news_url
+                best_fit_article_positive['title'] = article.title
+                best_fit_article_positive['source_name'] = article.source_name 
+                best_fit_article_positive['time'] = article.time
+                best_fit_article_positive['date'] = article.date_id
+                best_fit_article_positive['sentiment'] = article.sentiment
+
+            #neutral sentiment for the best fit date
+            if article.sentiment == 'Neutral'  and len(best_fit_article_neutral) == 0 and str(article.date_id) == str(minDiff_day):
+                best_fit_article_neutral['image_url'] = article.image_url
+                best_fit_article_neutral['news_url'] = article.news_url
+                best_fit_article_neutral['title'] = article.title
+                best_fit_article_neutral['source_name'] = article.source_name
+                best_fit_article_neutral['time'] = article.time
+                best_fit_article_neutral['date'] = article.date_id
+                best_fit_article_neutral['sentiment'] = article.sentiment
+
+            #negative sentiment for the best fit date
+            if article.sentiment == 'Negative'  and len(best_fit_article_negative) == 0 and str(article.date_id) == str(minDiff_day):
+                best_fit_article_negative['image_url'] = article.image_url
+                best_fit_article_negative['news_url'] = article.news_url
+                best_fit_article_negative['title'] = article.title
+                best_fit_article_negative['source_name'] = article.source_name
+                best_fit_article_negative['time'] = article.time
+                best_fit_article_negative['date'] = article.date_id
+                best_fit_article_negative['sentiment'] = article.sentiment
+
+        #context needed for html file
         context = {
-        'date_analyze': str(compare_date),
+        'date_analyze': str(searched_date),
         'date_best_fit': str(minDiff_day),
-        'mainChartJSON': MainChartJSON,
+        'best_fit_all_dataJSON': best_fit_open_prices,
+        'analysis_all_dataJSON': searched_date_open_prices,
+        'plot_labels': all_times,
         'EPSChartJSON': EPSChartJSON,
-        'analysis_slope':compared_daily_pre_percent_change,
-        'lbf_slope': best_fit_pre_precent_change,
-        # 'analysis_MSE': round(compared_daily_MSE,4),
-        'analysis_MSE': compared_daily_MSE*4,
-        # 'lbf_MSE': round(best_fit_MSE,4),
-        'lbf_MSE': best_fit_MSE*4,
+        'analysis_slope':compared_daily_pre_percent_change  * 100,
+        'lbf_slope': best_fit_pre_percent_change  * 100,
+        'analysis_MSE': compared_daily_MSE*pow(10,4),
+        'lbf_MSE': best_fit_MSE*pow(10,4),
         'stock': background_info, 
-        'hidden': "no"
+        'hidden': "no",
+        'analysis_positive': compare_article_positive,
+        'analysis_neutral': compare_article_neutral,
+        'analysis_negative': compare_article_negative,
+        'best_fit_positive': best_fit_article_positive,
+        'best_fit_neutral': best_fit_article_neutral,
+        'best_fit_negative': best_fit_article_negative,
         }
         return render(request, 'index.html', context=context)
     else:

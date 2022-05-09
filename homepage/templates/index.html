@@ -8,20 +8,19 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <!-- for chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>   
   </head>
 
+
+  <!-- nav bar -->
   <nav class="navbar navbar-light bg-light">
     <div class="container-fluid">
       <h1> Premarket Predictions </h1>
 
  
       <form method="post" class="d-flex">{% csrf_token %}
-        {% comment %} Start Date {% endcomment %}
-        {% comment %} <input class="form-control me-2" type="date" name="start_date" placeholder="Start Date" aria-label="Search"> {% endcomment %}
-        {% comment %} End Date {% endcomment %}
-        {% comment %} <input class="form-control me-2" type="date" name="end_date" placeholder="End Date" aria-label="Search"> {% endcomment %}
-
         <input class="form-control me-2" type="date" name="compare_date" placeholder="Day you want to find" aria-label="Search">
 
         <input class="form-control me-2" type="search" name="search" placeholder="Search for symbols" aria-label="Search">
@@ -30,7 +29,6 @@
       </form>
     </div>
   </nav>
-  {% comment %} <title>Hello, world!</title> {% endcomment %}
   {% if hidden == "no" %}
   <div class="container-fluid">
     {% else %}
@@ -38,38 +36,97 @@
 {% endif %}
   <div class="card">
     <div class="card-body">
-      <canvas id="mainChart" style="position: relative; height:40vh; width:80vw"></canvas>
-      <script>
-        var data = {{ mainChartJSON | safe }}
-        var ctx = document.getElementById("mainChart").getContext('2d');
-        var myChart = new Chart(ctx, data);
+
+    <!-- Main plot -->
+    <canvas id="mainChart" style="position: relative; height:40vh; width:80vw"></canvas>
+
+    <script>
+    var ctx = document.getElementById("mainChart").getContext("2d");
+    var myChart = new Chart(ctx, {
+      
+      type: 'line',
+      options: {
+        title: {
+          display: true,
+          text: 'Price Change over Time',
+          fontSize: 14
+        },
+        scales: {
+          xAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: 'Time',
+              fontSize: 12
+            },
+          }],
+          yAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: 'Change in Price (%)',
+              fontSize: 12
+            }
+          }]
+        }
+        
+      },
+      data: {
+        labels: {{ plot_labels | safe }},
+        datasets: [{
+          label: 'Price for Evaluation Date',
+          pointRadius: 0.5,
+          pointBorderColor : "rgb(71,102,209)",
+          borderColor: "rgb(71,102,209)",
+          borderWidth: 1.5,
+          pointBorderWidth: 1.5,
+          pointBackgroundColor: "rgb(255,255,255)",
+          data: {{ analysis_all_dataJSON | safe }},
+          fill: false,
+          spanGaps: true,
+        },
+        {
+          label: 'Price for Similar Date',
+          pointRadius: 0.5,
+          pointBorderColor : "rgb(97,176,88)",
+          pointBorderWidth: 1.5,
+          borderColor: "rgb(97,176,88)",
+          borderWidth: 1.5,
+          pointBackgroundColor: "rgb(255,255,255)",
+          data: {{ best_fit_all_dataJSON | safe }},
+          fill: false,
+          spanGaps: true,
+        }
+        ],
+      }
+    });
     </script>
+
     <br>
     <br>
+
+    <!--Two columns, one for company information, and the other for plot information and eps plot -->
     <div class="container">
       <div class="row">
+        <!-- Company Information-->
         <div class="col">
           <h2> Company Profile </h2>
           <br>
 
-          <p> <b>Analysis Date:</b> {{ date_analyze }} <b>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Best Fit Date:</b> {{ date_best_fit }}</p>
-          {% for s in stock %}
   
-          <p> <b>Ticker:</b> {{ s.ticker }} </p>
-          <p> <b>Sector:</b> {{ s.sector }} </p>
-          <p> <b>Industry:</b> {{ s.industry }} </p>
-          <p> <b>Age:</b> {{ s.age }} </p>
-          <p> <b>Description:</b> {{ s.description }} </p>
-          <p> <b>Total Employees:</b> {{ s.total_employees }} </p>
-          <p> <b>Website:</b> {{ s.website }} </p>
+          <p> <b>Ticker:</b> {{ stock.ticker }} </p>
+          <p> <b>Sector:</b> {{ stock.sector }} </p>
+          <p> <b>Industry:</b> {{ stock.industry }} </p>
+          <p> <b>Age:</b> {{ stock.age }} </p>
+          <p> <b>Description:</b> {{ stock.description }} </p>
+          <p> <b>Total Employees:</b> {{ stock.total_employees }} </p>
+          <p> <b>Website:</b> {{ stock.website }} </p>
           
-      
-            {% endfor %}
         </div>
+        <!-- plot information -->
         <div class="col">
           <h2> Plot Statistics </h2>
         <br>
-
+        <p> <b>Analysis Date:</b> {{ date_analyze }}</p>
+        <p> <b>Best Fit Date:</b> {{ date_best_fit }}</p>
         <p> <b>Analysis Date Slope:</b> {{ analysis_slope }} </p>
         <p> <b>Best Fit Date Slope:</b> {{ lbf_slope }} </p>
 
@@ -77,7 +134,8 @@
         <p> <b>Best Fit Date MSE:</b> {{ lbf_MSE }} </p>
         <br>
 
-        <canvas id="epsChart" style="position: relative; height:5vh; width:5vw"></canvas>
+        <!-- eps plot -->
+        <canvas id="epsChart" style="position: relative; height:1vh; width:1vw"></canvas>
           <script>
             var data = {{ EPSChartJSON | safe }}
             var ctx = document.getElementById("epsChart").getContext('2d');
@@ -86,63 +144,90 @@
         </div>
       </div>
     </div>
-    {% comment %} <p> <b>Analysis Date:</b> {{ date_analyze }} <b>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Best Fit Date:</b> {{ date_best_fit }}</p> {% endcomment %}
 
+    <br>
+    <br>
+    <br>
+
+    <!-- container for 6 news articles -->
+    <div class="container">
+    <h2> Related News </h2>
+    <br>
+    <br>
+      <h5> News from {{ analysis_positive.date }} </h5>
+      <div class="row">
+        <div class="col">
+          <div class="card">
+            <img src={{ analysis_positive.image_url }} class="card-img-top" alt="...">
+            <div class="card-body">
+              <h5 class="card-title">{{ analysis_positive.title }}</h5>
+              <p class="card-text">Source: {{ analysis_positive.source_name }}<br>When: {{ analysis_positive.date }} at {{ analysis_positive.time }}<br>Sentiment: {{ analysis_positive.sentiment }}</p>
+              <a class="btn btn-outline-secondary" href={{ analysis_positive.news_url }} role="button">Learn More</a>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <img src={{ analysis_neutral.image_url }} class="card-img-top" alt="...">
+            <div class="card-body">
+              <h5 class="card-title">{{ analysis_neutral.title }}</h5>
+              <p class="card-text">Source: {{ analysis_neutral.source_name }}<br>When: {{ analysis_neutral.date }} at {{ analysis_neutral.time }}<br>Sentiment: {{ analysis_neutral.sentiment }}</p>
+              <a class="btn btn-outline-secondary" href={{ analysis_neutral.news_url }} role="button">Learn More</a>
+
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card" >
+            <img src={{ analysis_negative.image_url }} class="card-img-top" alt="...">
+            <div class="card-body">
+              <h5 class="card-title">{{ analysis_negative.title }}</h5>
+              <p class="card-text">Source: {{ analysis_negative.source_name }}<br>When: {{ analysis_negative.date }} at {{ analysis_negative.time }}<br>Sentiment: {{ analysis_negative.sentiment }}</p>
+              <a class="btn btn-outline-secondary" href={{ analysis_negative.news_url }} role="button">Learn More</a>
+
+            </div>
+          </div>        
+        </div>
+      </div>
+    </div>
+    <br>
+    <br>
+    <div class="container">
+      <h5> News from {{ best_fit_positive.date }} </h5>
+        <div class="row">
+          <div class="col">
+            <div class="card" >
+              <img src={{ best_fit_positive.image_url }} class="card-img-top" alt="...">
+              <div class="card-body">
+                <h5 class="card-title">{{ best_fit_positive.title }}</h5>
+                <p class="card-text">Source: {{ best_fit_positive.source_name }}<br>When: {{ best_fit_positive.date }} at {{ best_fit_positive.time }}<br>Sentiment: {{ best_fit_positive.sentiment }}</p>
+                <a class="btn btn-outline-secondary" href={{ best_fit_positive.news_url }} role="button">Learn More</a>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card" >
+              <img src={{ best_fit_neutral.image_url }} class="card-img-top" alt="...">
+              <div class="card-body">
+                <h5 class="card-title">{{ best_fit_neutral.title }}</h5>
+                <p class="card-text">Source: {{ best_fit_neutral.source_name }}<br>When: {{ best_fit_neutral.date }} at {{ best_fit_neutral.time }}<br>Sentiment: {{ best_fit_neutral.sentiment }}</p>
+                <a class="btn btn-outline-secondary" href={{ best_fit_neutral.news_url }} role="button">Learn More</a>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card" >
+              <img src={{ best_fit_negative.image_url }} class="card-img-top" alt="...">
+              <div class="card-body">
+                <h5 class="card-title">{{ best_fit_negative.title }}</h5>
+                <p class="card-text">Source: {{ best_fit_negative.source_name }}<br>When: {{ best_fit_negative.date }} at {{ best_fit_negative.time }}<br>Sentiment: {{ best_fit_negative.sentiment }}</p>
+                <a class="btn btn-outline-secondary" href={{ best_fit_negative.news_url }} role="button">Learn More</a>
+              </div>
+            </div>        
+          </div>
+      </div>
+    </div>
 
     </div>
   </div>
-  
-  <div class="container">
-    <div class="row">
-      <div class="col">
-        Column
-        <img src="pic_trulli.jpg" alt="Italian Trulli">
-      </div>
-      <div class="col">
-        Column
-        <img src="pic_trulli.jpg" alt="Italian Trulli">
-      </div>
-      <div class="col">
-        Column
-        <img src="pic_trulli.jpg" alt="Italian Trulli">
-      </div>
-    </div>
-  </div>
-  {% comment %} {% for s in stock %}
-
-{{ s.ticker }}
-{{ s.description }}
-
-{% endfor %} {% endcomment %}
-
-   {% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script> {% endcomment %}
-<body>
-{% comment %} <canvas id="myChart" style="width:100%;max-width:600px"></canvas> {% endcomment %}
-
-{% comment %} <script>
-var xValues = [50,60,70,80,90,100,110,120,130,140,150];
-var yValues = [7,8,8,9,9,9,10,11,14,14,15];
-
-new Chart("myChart", {
-  type: "line",
-  data: {
-    labels: xValues,
-    datasets: [{
-      fill: false,
-      lineTension: 0,
-      backgroundColor: "rgba(0,0,255,1.0)",
-      borderColor: "rgba(0,0,255,0.1)",
-      data: yValues
-    }]
-  },
-  options: {
-    legend: {display: false},
-    scales: {
-      yAxes: [{ticks: {min: 6, max:16}}],
-    }
-  }
-});
-</script> {% endcomment %}
-
-</body>
 </html>

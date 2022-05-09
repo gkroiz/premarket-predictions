@@ -1,3 +1,7 @@
+#file name: models.py
+#description: This file defines all of the datatables for the database
+
+#imports
 from datetime import datetime
 from operator import mod
 from pydoc import describe
@@ -27,9 +31,6 @@ class dates(models.Model):
 class daily_data_trend(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
     ticker = models.ForeignKey(stock, on_delete=models.CASCADE, related_name='daily_to_stock', to_field='ticker')
-
-    # ticker_id = models.CharField(max_length=10)
-    # date_id = models.DateField()
     date = models.ForeignKey(dates, on_delete=models.CASCADE, related_name='daily_to_dates', to_field='date')
     pre_percent_change = models.FloatField()
     pre_MSE = models.FloatField()
@@ -41,9 +42,7 @@ class daily_data_trend(models.Model):
 
 class minute_stock_data(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    # ticker_id = models.CharField(max_length=10)
     ticker = models.ForeignKey(stock, on_delete=models.CASCADE, related_name='minute_to_stock', to_field='ticker')
-    # date_id = models.DateField()
     date = models.ForeignKey(dates, on_delete=models.CASCADE, related_name='minute_to_dates', to_field='date')
     time = models.TimeField()
     open_price = models.FloatField()
@@ -58,7 +57,6 @@ class minute_stock_data(models.Model):
 
 class eps(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    # ticker_id = models.CharField(max_length=10)
     ticker = models.ForeignKey(stock, on_delete=models.CASCADE, related_name='eps_to_stock', to_field='ticker')
     quarter_date = models.DateField()
     announced_date = models.DateField()
@@ -72,9 +70,8 @@ class news(models.Model):
     title = models.TextField()
     date = models.ForeignKey(dates, on_delete=models.CASCADE, related_name='news_to_dates', to_field='date')
     time = models.TimeField()
-    # datetime = models.DateTimeField()
     news_url = models.TextField()
-    tickers = models.JSONField()
+    tickers = models.TextField()
     image_url = models.TextField()
     text = models.TextField()
     source_name = models.TextField()
@@ -82,7 +79,3 @@ class news(models.Model):
     type = models.CharField(max_length= 100)
     class Meta:
         db_table = 'news'
-
-
-
-
